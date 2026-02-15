@@ -109,10 +109,12 @@
     <div class="workspace-controls">
         {% if workspace %}
             <form method="post" action="/challenge/{{ challenge.id }}/stop">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-danger">Stop Workspace</button>
             </form>
         {% else %}
             <form method="post" action="/challenge/{{ challenge.id }}/start">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-success">Start Workspace</button>
             </form>
         {% endif %}
@@ -151,6 +153,7 @@
         </div>
     {% else %}
         <form method="post" action="/challenge/{{ challenge.id }}/submit">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="flag">Flag</label>
                 <input type="text" id="flag" name="flag" placeholder="flag{...}" required>

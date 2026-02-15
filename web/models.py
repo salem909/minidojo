@@ -3,8 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import hashlib
+from passlib.context import CryptContext
 
 Base = declarative_base()
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class User(Base):
@@ -19,9 +21,11 @@ class User(Base):
     solves = relationship("Solve", back_populates="user")
 
     def set_password(self, password: str):
-        self.password_hash = hashlib.sha256(password.encode()).hexdigest()
+        self.password_hash = password_context.hash(password)
 
     def check_password(self, password: str) -> bool:
+        if self.password_hash.startswith("$2"):
+            return password_context.verify(password, self.password_hash)
         return self.password_hash == hashlib.sha256(password.encode()).hexdigest()
 
 

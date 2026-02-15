@@ -21,8 +21,94 @@ SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-in-production")
 HOST_PUBLIC = os.getenv("HOST_PUBLIC", "127.0.0.1")
 PORT_RANGE_START = int(os.getenv("PORT_RANGE_START", "30000"))
 PORT_RANGE_END = int(os.getenv("PORT_RANGE_END", "31000"))
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SESSION_COOKIE_SECURE).lower()).lower() == "true"
+CSRF_COOKIE_NAME = "csrf_token"
+CSRF_MAX_AGE_SECONDS = 86400 * 7
+LOGIN_WINDOW_SECONDS = int(os.getenv("LOGIN_WINDOW_SECONDS", "300"))
+LOGIN_MAX_ATTEMPTS = int(os.getenv("LOGIN_MAX_ATTEMPTS", "10"))
+login_attempts = {}
 
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'"
+    return response
+
+
+def get_or_create_csrf_token(request: Request) -> str:
+    token = request.cookies.get(CSRF_COOKIE_NAME)
+    if token:
+        return token
+    return secrets.token_urlsafe(32)
+
+
+def render_template(request: Request, template_name: str, context: dict):
+    csrf_token = get_or_create_csrf_token(request)
+    payload = {"request": request, "csrf_token": csrf_token, **context}
+    response = templates.TemplateResponse(template_name, payload)
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        httponly=False,
+        max_age=CSRF_MAX_AGE_SECONDS,
+        samesite="lax",
+        secure=CSRF_COOKIE_SECURE,
+    )
+    return response
+
+
+def validate_csrf(request: Request, csrf_token: str):
+    csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)
+    if not csrf_cookie or not csrf_token:
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    if not secrets.compare_digest(csrf_cookie, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+
+
+def get_client_ip(request: Request) -> str:
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def check_login_rate_limit(request: Request):
+    ip_address = get_client_ip(request)
+    now = int(time.time())
+    record = login_attempts.get(ip_address)
+    if not record:
+        return
+
+    if now - record["window_start"] > LOGIN_WINDOW_SECONDS:
+        login_attempts.pop(ip_address, None)
+        return
+
+    if record["count"] >= LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again later.")
+
+
+def register_failed_login(request: Request):
+    ip_address = get_client_ip(request)
+    now = int(time.time())
+    record = login_attempts.get(ip_address)
+
+    if not record or now - record["window_start"] > LOGIN_WINDOW_SECONDS:
+        login_attempts[ip_address] = {"count": 1, "window_start": now}
+        return
+
+    record["count"] += 1
+
+
+def clear_login_attempts(request: Request):
+    ip_address = get_client_ip(request)
+    login_attempts.pop(ip_address, None)
 
 # Initialize Docker client with explicit configuration for Windows compatibility
 try:
@@ -83,6 +169,14 @@ def generate_flag(challenge_slug: str, user_id: int) -> str:
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
+    if APP_ENV == "production":
+        if SECRET_KEY == "super-secret-key-change-in-production":
+            raise RuntimeError("SECRET_KEY must be set in production")
+        if not SESSION_COOKIE_SECURE:
+            raise RuntimeError("SESSION_COOKIE_SECURE must be true in production")
+        if not CSRF_COOKIE_SECURE:
+            raise RuntimeError("CSRF_COOKIE_SECURE must be true in production")
+
     print("Initializing database...")
     init_db()
     print("✓ Database initialized")
@@ -100,7 +194,7 @@ async def index(request: Request, db: Session = Depends(get_db)):
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     """Registration page"""
-    return templates.TemplateResponse("register.html", {"request": request})
+    return render_template(request, "register.html", {})
 
 
 @app.post("/register")
@@ -108,15 +202,26 @@ async def register(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(...),
     db: Session = Depends(get_db)
 ):
     """Handle user registration"""
+    validate_csrf(request, csrf_token)
+
+    if len(password) < 8:
+        return render_template(
+            request,
+            "register.html",
+            {"error": "Password must be at least 8 characters long"}
+        )
+
     # Check if username already exists
     existing = db.query(User).filter_by(username=username).first()
     if existing:
-        return templates.TemplateResponse(
+        return render_template(
+            request,
             "register.html",
-            {"request": request, "error": "Username already exists"}
+            {"error": "Username already exists"}
         )
     
     # Create new user
@@ -133,7 +238,8 @@ async def register(
         value=token,
         httponly=True,
         max_age=86400 * 7,
-        samesite="lax"
+        samesite="lax",
+        secure=SESSION_COOKIE_SECURE
     )
     return response
 
@@ -141,7 +247,7 @@ async def register(
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Login page"""
-    return templates.TemplateResponse("login.html", {"request": request})
+    return render_template(request, "login.html", {})
 
 
 @app.post("/login")
@@ -149,16 +255,23 @@ async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(...),
     db: Session = Depends(get_db)
 ):
     """Handle user login"""
+    validate_csrf(request, csrf_token)
+    check_login_rate_limit(request)
     user = db.query(User).filter_by(username=username).first()
     
     if not user or not user.check_password(password):
-        return templates.TemplateResponse(
+        register_failed_login(request)
+        return render_template(
+            request,
             "login.html",
-            {"request": request, "error": "Invalid username or password"}
+            {"error": "Invalid username or password"}
         )
+
+    clear_login_attempts(request)
     
     # Create session
     token = serializer.dumps(user.id)
@@ -168,7 +281,8 @@ async def login(
         value=token,
         httponly=True,
         max_age=86400 * 7,
-        samesite="lax"
+        samesite="lax",
+        secure=SESSION_COOKIE_SECURE
     )
     return response
 
@@ -207,9 +321,10 @@ async def challenges_list(
         for c in challenges
     ]
     
-    return templates.TemplateResponse(
+    return render_template(
+        request,
         "challenges.html",
-        {"request": request, "user": user, "challenges": challenges_data}
+        {"user": user, "challenges": challenges_data}
     )
 
 
@@ -244,9 +359,10 @@ async def leaderboard(
             }
         )
 
-    return templates.TemplateResponse(
+    return render_template(
+        request,
         "leaderboard.html",
-        {"request": request, "user": user, "leaderboard": leaderboard_data}
+        {"user": user, "leaderboard": leaderboard_data}
     )
 
 
@@ -279,26 +395,29 @@ async def challenge_detail(
     if workspace:
         workspace_url = f"http://{HOST_PUBLIC}:{workspace.host_port}"
     
-    return templates.TemplateResponse(
+    return render_template(
+        request,
         "challenge.html",
         {
-            "request": request,
             "user": user,
             "challenge": challenge,
             "workspace": workspace,
             "workspace_url": workspace_url,
-            "solved": solve is not None
+            "solved": solve is not None,
         }
     )
 
 
 @app.post("/challenge/{challenge_id}/start")
 async def start_workspace(
+    request: Request,
     challenge_id: int,
+    csrf_token: str = Form(...),
     user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
     """Start a workspace container for the challenge"""
+    validate_csrf(request, csrf_token)
     challenge = db.query(Challenge).filter_by(id=challenge_id).first()
     if not challenge:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -365,11 +484,14 @@ async def start_workspace(
 
 @app.post("/challenge/{challenge_id}/stop")
 async def stop_workspace(
+    request: Request,
     challenge_id: int,
+    csrf_token: str = Form(...),
     user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
     """Stop the workspace container"""
+    validate_csrf(request, csrf_token)
     workspace = db.query(Workspace).filter_by(
         user_id=user.id,
         challenge_id=challenge_id,
@@ -408,10 +530,12 @@ async def submit_flag(
     request: Request,
     challenge_id: int,
     flag: str = Form(...),
+    csrf_token: str = Form(...),
     user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
     """Submit a flag for validation"""
+    validate_csrf(request, csrf_token)
     challenge = db.query(Challenge).filter_by(id=challenge_id).first()
     if not challenge:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -424,17 +548,17 @@ async def submit_flag(
     ).first()
     
     if not workspace:
-        return templates.TemplateResponse(
+        return render_template(
+            request,
             "challenge.html",
             {
-                "request": request,
                 "user": user,
                 "challenge": challenge,
                 "workspace": None,
                 "workspace_url": None,
                 "solved": False,
                 "error": "No active workspace. Please start a workspace first."
-            }
+            },
         )
     
     # Validate flag
@@ -457,17 +581,17 @@ async def submit_flag(
         )
     else:
         workspace_url = f"http://{HOST_PUBLIC}:{workspace.host_port}"
-        return templates.TemplateResponse(
+        return render_template(
+            request,
             "challenge.html",
             {
-                "request": request,
                 "user": user,
                 "challenge": challenge,
                 "workspace": workspace,
                 "workspace_url": workspace_url,
                 "solved": False,
                 "error": "Incorrect flag. Try again!"
-            }
+            },
         )
 
 

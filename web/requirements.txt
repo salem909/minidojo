@@ -8,3 +8,4 @@ itsdangerous==2.1.2
 docker==7.0.0
 pywin32==306; sys_platform == 'win32'
 requests==2.31.0
+passlib[bcrypt]==1.7.4
