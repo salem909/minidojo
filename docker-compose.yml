@@ -21,7 +21,7 @@ services:
       DATABASE_URL: postgresql://dojo:dojo_pass@db:5432/dojo
       APP_ENV: development
       SECRET_KEY: super-secret-key-change-in-production
-      HOST_PUBLIC: 127.0.0.1
+      HOST_PUBLIC: ${HOST_PUBLIC:-127.0.0.1}
       PORT_RANGE_START: 30000
       PORT_RANGE_END: 31000
       SESSION_COOKIE_SECURE: "false"

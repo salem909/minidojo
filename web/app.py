@@ -184,6 +184,22 @@ def generate_flag(challenge_slug: str, user_id: int) -> str:
     return f"flag{{{challenge_slug}:{user_id}:{random_part}}}"
 
 
+def get_workspace_host(request: Request) -> str:
+    """Return host users should use to access workspace ports."""
+    host_public = (HOST_PUBLIC or "").strip()
+    if host_public and host_public not in {"127.0.0.1", "localhost"}:
+        return host_public
+
+    forwarded_host = request.headers.get("x-forwarded-host", "").strip()
+    if forwarded_host:
+        return forwarded_host.split(",")[0].strip().split(":")[0]
+
+    if request.url.hostname:
+        return request.url.hostname
+
+    return "127.0.0.1"
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, db: Session = Depends(get_db)):
     """Home page - redirect to challenges if logged in, otherwise to login"""
@@ -395,7 +411,8 @@ async def challenge_detail(
     
     workspace_url = None
     if workspace:
-        workspace_url = f"http://{HOST_PUBLIC}:{workspace.host_port}"
+        workspace_host = get_workspace_host(request)
+        workspace_url = f"http://{workspace_host}:{workspace.host_port}"
     
     return render_template(
         request,
@@ -450,7 +467,7 @@ async def start_workspace(
             challenge.docker_image,
             detach=True,
             environment={"FLAG": flag},
-            ports={"7681/tcp": host_port},
+            ports={"7681/tcp": ("0.0.0.0", host_port)},
             name=f"dojo-{user.id}-{challenge.slug}-{int(time.time())}",
             mem_limit="256m",
             cpu_period=100000,
@@ -582,7 +599,8 @@ async def submit_flag(
             status_code=303
         )
     else:
-        workspace_url = f"http://{HOST_PUBLIC}:{workspace.host_port}"
+        workspace_host = get_workspace_host(request)
+        workspace_url = f"http://{workspace_host}:{workspace.host_port}"
         return render_template(
             request,
             "challenge.html",
