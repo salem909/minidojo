@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from itsdangerous import URLSafeTimedSerializer
+from contextlib import asynccontextmanager
 import docker
 import os
 import secrets
@@ -12,9 +13,6 @@ from datetime import datetime
 
 from db import init_db, get_db
 from models import User, Challenge, Workspace, Solve
-
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-in-production")
@@ -31,6 +29,26 @@ LOGIN_MAX_ATTEMPTS = int(os.getenv("LOGIN_MAX_ATTEMPTS", "10"))
 login_attempts = {}
 
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if APP_ENV == "production":
+        if SECRET_KEY == "super-secret-key-change-in-production":
+            raise RuntimeError("SECRET_KEY must be set in production")
+        if not SESSION_COOKIE_SECURE:
+            raise RuntimeError("SESSION_COOKIE_SECURE must be true in production")
+        if not CSRF_COOKIE_SECURE:
+            raise RuntimeError("CSRF_COOKIE_SECURE must be true in production")
+
+    print("Initializing database...")
+    init_db()
+    print("✓ Database initialized")
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+templates = Jinja2Templates(directory="templates")
 
 
 @app.middleware("http")
@@ -164,22 +182,6 @@ def generate_flag(challenge_slug: str, user_id: int) -> str:
     """Generate a unique flag for a workspace"""
     random_part = secrets.token_hex(8)
     return f"flag{{{challenge_slug}:{user_id}:{random_part}}}"
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    if APP_ENV == "production":
-        if SECRET_KEY == "super-secret-key-change-in-production":
-            raise RuntimeError("SECRET_KEY must be set in production")
-        if not SESSION_COOKIE_SECURE:
-            raise RuntimeError("SESSION_COOKIE_SECURE must be true in production")
-        if not CSRF_COOKIE_SECURE:
-            raise RuntimeError("CSRF_COOKIE_SECURE must be true in production")
-
-    print("Initializing database...")
-    init_db()
-    print("✓ Database initialized")
 
 
 @app.get("/", response_class=HTMLResponse)
