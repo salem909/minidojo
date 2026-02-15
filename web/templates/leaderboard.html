@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Leaderboard - Mini-DOJO{% endblock %}
+
+{% block content %}
+<h2 class="page-title">User Leaderboard</h2>
+
+<style>
+    .leaderboard-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(18, 27, 43, 0.9), rgba(13, 19, 31, 0.9));
+        overflow: hidden;
+    }
+
+    .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(42, 65, 98, 0.7);
+    }
+
+    .leaderboard-table th {
+        color: var(--text);
+        background: rgba(10, 18, 31, 0.85);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .leaderboard-table td {
+        color: var(--text-soft);
+    }
+
+    .leaderboard-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .leaderboard-table tr.current-user td {
+        color: var(--text);
+        background: rgba(36, 240, 168, 0.1);
+    }
+
+    .rank {
+        width: 90px;
+        color: var(--neon);
+        font-weight: 700;
+    }
+
+    .solve-count {
+        width: 140px;
+        color: #9bd6ff;
+        font-weight: 700;
+    }
+
+    .empty-state {
+        color: var(--text-soft);
+    }
+</style>
+
+{% if leaderboard %}
+<div class="leaderboard-card">
+    <table class="leaderboard-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>User</th>
+                <th>Solves</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in leaderboard %}
+            <tr class="{% if row.is_current_user %}current-user{% endif %}">
+                <td class="rank">#{{ row.rank }}</td>
+                <td>{{ row.username }}</td>
+                <td class="solve-count">{{ row.solve_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="empty-state">No users found yet.</p>
+{% endif %}
+{% endblock %}

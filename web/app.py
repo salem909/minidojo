@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from itsdangerous import URLSafeTimedSerializer
 import docker
 import os
@@ -209,6 +210,43 @@ async def challenges_list(
     return templates.TemplateResponse(
         "challenges.html",
         {"request": request, "user": user, "challenges": challenges_data}
+    )
+
+
+@app.get("/leaderboard", response_class=HTMLResponse)
+async def leaderboard(
+    request: Request,
+    user: User = Depends(require_auth),
+    db: Session = Depends(get_db)
+):
+    """Leaderboard ranking users by total solves"""
+    rows = (
+        db.query(
+            User.id,
+            User.username,
+            func.count(Solve.id).label("solve_count")
+        )
+        .outerjoin(Solve, Solve.user_id == User.id)
+        .group_by(User.id, User.username)
+        .order_by(func.count(Solve.id).desc(), User.username.asc())
+        .all()
+    )
+
+    leaderboard_data = []
+    for index, row in enumerate(rows, start=1):
+        leaderboard_data.append(
+            {
+                "rank": index,
+                "user_id": row.id,
+                "username": row.username,
+                "solve_count": row.solve_count,
+                "is_current_user": row.id == user.id,
+            }
+        )
+
+    return templates.TemplateResponse(
+        "leaderboard.html",
+        {"request": request, "user": user, "leaderboard": leaderboard_data}
     )
 
 
