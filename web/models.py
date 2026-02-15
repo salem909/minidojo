@@ -4,9 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import hashlib
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 
 Base = declarative_base()
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 
 class User(Base):
@@ -24,8 +25,10 @@ class User(Base):
         self.password_hash = password_context.hash(password)
 
     def check_password(self, password: str) -> bool:
-        if self.password_hash.startswith("$2"):
+        try:
             return password_context.verify(password, self.password_hash)
+        except (UnknownHashError, ValueError):
+            pass
         return self.password_hash == hashlib.sha256(password.encode()).hexdigest()
 
 
