@@ -67,4 +67,3 @@ RUN chmod 700 /root/.entrypoint.sh
 ENTRYPOINT ["/root/.entrypoint.sh"]
 
 EXPOSE 7681
-ENTRYPOINT ["/entrypoint.sh"]
