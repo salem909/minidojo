@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ challenge.title }} - Mini-DOJO{% endblock %}
+
+{% block content %}
+<style>
+    .challenge-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .workspace-section {
+        background: #f8f9fa;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .workspace-section h3 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+    
+    .workspace-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .workspace-url {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        margin-top: 15px;
+    }
+    
+    .workspace-url a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        word-break: break-all;
+    }
+    
+    .workspace-url a:hover {
+        text-decoration: underline;
+    }
+    
+    .flag-section {
+        background: #f8f9fa;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .flag-section h3 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-top: 20px;
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="challenge-header">
+    <h2 style="color: #333;">{{ challenge.title }}</h2>
+    {% if solved %}
+        <span class="badge badge-success">✅ Solved</span>
+    {% endif %}
+</div>
+
+{% if challenge.description %}
+<p style="margin-bottom: 30px; color: #666; font-size: 16px;">{{ challenge.description }}</p>
+{% endif %}
+
+<div class="workspace-section">
+    <h3>🖥️ Workspace</h3>
+    
+    <div class="workspace-controls">
+        {% if workspace %}
+            <form method="post" action="/challenge/{{ challenge.id }}/stop">
+                <button type="submit" class="btn btn-danger">Stop Workspace</button>
+            </form>
+        {% else %}
+            <form method="post" action="/challenge/{{ challenge.id }}/start">
+                <button type="submit" class="btn btn-success">Start Workspace</button>
+            </form>
+        {% endif %}
+    </div>
+    
+    {% if workspace %}
+        <p style="color: #666; margin-bottom: 10px;">
+            Your workspace is running! Click the link below to open the browser terminal:
+        </p>
+        <div class="workspace-url">
+            <strong>Terminal URL:</strong><br>
+            <a href="{{ workspace_url }}" target="_blank">{{ workspace_url }}</a>
+        </div>
+        <p style="color: #999; margin-top: 10px; font-size: 14px;">
+            💡 Tip: The terminal opens in a new tab. You can interact with the Linux environment directly in your browser.
+        </p>
+    {% else %}
+        <p style="color: #666;">
+            Click "Start Workspace" to launch your isolated container environment.
+        </p>
+    {% endif %}
+</div>
+
+<div class="flag-section">
+    <h3>🚩 Submit Flag</h3>
+    
+    {% if error %}
+    <div class="alert alert-error">
+        {{ error }}
+    </div>
+    {% endif %}
+    
+    {% if solved %}
+        <div class="alert alert-success">
+            🎉 Congratulations! You've solved this challenge!
+        </div>
+    {% else %}
+        <form method="post" action="/challenge/{{ challenge.id }}/submit">
+            <div class="form-group">
+                <label for="flag">Flag</label>
+                <input type="text" id="flag" name="flag" placeholder="flag{...}" required>
+            </div>
+            <button type="submit" class="btn">Submit Flag</button>
+        </form>
+    {% endif %}
+</div>
+
+<a href="/challenges" class="back-link">← Back to Challenges</a>
+{% endblock %}

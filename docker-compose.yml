@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dojo
+      POSTGRES_PASSWORD: dojo_pass
+      POSTGRES_DB: dojo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dojo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./web
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://dojo:dojo_pass@db:5432/dojo
+      SECRET_KEY: super-secret-key-change-in-production
+      HOST_PUBLIC: 127.0.0.1
+      PORT_RANGE_START: 30000
+      PORT_RANGE_END: 31000
+      WORKSPACE_TTL_HOURS: 6
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cleanup:
+    build: ./cleanup
+    environment:
+      DATABASE_URL: postgresql://dojo:dojo_pass@db:5432/dojo
+      WORKSPACE_TTL_HOURS: 6
+      CLEANUP_INTERVAL_SECONDS: 300
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

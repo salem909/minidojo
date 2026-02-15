@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}Challenges - Mini-DOJO{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 30px; color: #333;">Available Challenges</h2>
+
+<style>
+    .challenge-card {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    .challenge-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    .challenge-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .challenge-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .challenge-description {
+        color: #666;
+        margin-bottom: 15px;
+    }
+</style>
+
+{% if challenges %}
+    {% for challenge in challenges %}
+    <div class="challenge-card">
+        <div class="challenge-header">
+            <h3 class="challenge-title">{{ challenge.title }}</h3>
+            {% if challenge.solved %}
+                <span class="badge badge-success">✅ Solved</span>
+            {% endif %}
+        </div>
+        
+        {% if challenge.description %}
+        <p class="challenge-description">{{ challenge.description }}</p>
+        {% endif %}
+        
+        <a href="/challenge/{{ challenge.id }}" class="btn">View Challenge</a>
+    </div>
+    {% endfor %}
+{% else %}
+    <p style="color: #666;">No challenges available yet.</p>
+{% endif %}
+{% endblock %}
