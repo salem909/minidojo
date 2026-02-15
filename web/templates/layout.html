@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Mini-DOJO{% endblock %}</title>
     <style>
+        :root {
+            --bg: #05080f;
+            --panel: #0d131f;
+            --panel-soft: #121b2b;
+            --text: #d7ffe8;
+            --text-soft: #90b9a0;
+            --neon: #24f0a8;
+            --ai: #7f8cff;
+            --danger: #ff6b7a;
+            --success: #2de38f;
+            --border: #1f3048;
+            --glow: 0 0 20px rgba(36, 240, 168, 0.2);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,10 +26,14 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(127, 140, 255, 0.14) 0%, rgba(127, 140, 255, 0) 40%),
+                radial-gradient(circle at 90% 90%, rgba(36, 240, 168, 0.12) 0%, rgba(36, 240, 168, 0) 40%),
+                linear-gradient(165deg, #020409 0%, #060b14 60%, #091426 100%);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
         }
         
         .container {
@@ -24,77 +42,105 @@
         }
         
         .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, rgba(13, 19, 31, 0.96), rgba(13, 19, 31, 0.88));
+            border: 1px solid var(--border);
+            padding: 18px 24px;
+            border-radius: 14px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--glow), inset 0 0 0 1px rgba(127, 140, 255, 0.1);
+            backdrop-filter: blur(6px);
         }
         
         .header h1 {
-            color: #667eea;
-            font-size: 28px;
+            color: var(--neon);
+            font-size: 26px;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 10px rgba(36, 240, 168, 0.35);
         }
         
         .header nav {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             align-items: center;
+            font-size: 14px;
+        }
+
+        .header nav span {
+            color: var(--text-soft);
         }
         
         .header nav a {
-            color: #667eea;
+            color: var(--ai);
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.3s;
+            transition: color 0.2s;
         }
         
         .header nav a:hover {
-            color: #764ba2;
+            color: var(--neon);
         }
         
         .content {
-            background: white;
+            background: linear-gradient(180deg, rgba(13, 19, 31, 0.96), rgba(10, 16, 26, 0.96));
+            border: 1px solid var(--border);
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(127, 140, 255, 0.08);
+        }
+
+        h2,
+        h3 {
+            color: var(--text);
+            letter-spacing: 0.03em;
+        }
+
+        p {
+            color: var(--text-soft);
+            line-height: 1.6;
         }
         
         .btn {
             display: inline-block;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #1ddf97, #3eb0d8);
+            color: #03150f;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: background 0.3s;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 0 18px rgba(36, 240, 168, 0.28);
         }
         
         .btn:hover {
-            background: #764ba2;
+            transform: translateY(-1px);
+            box-shadow: 0 0 22px rgba(36, 240, 168, 0.4);
         }
         
         .btn-danger {
-            background: #e74c3c;
+            background: linear-gradient(135deg, #ff7a8a, #ff5d71);
+            color: #23070b;
+            box-shadow: 0 0 18px rgba(255, 107, 122, 0.32);
         }
         
         .btn-danger:hover {
-            background: #c0392b;
+            box-shadow: 0 0 22px rgba(255, 107, 122, 0.46);
         }
         
         .btn-success {
-            background: #27ae60;
+            background: linear-gradient(135deg, #32f09e, #24c8f0);
+            color: #04160f;
+            box-shadow: 0 0 18px rgba(45, 227, 143, 0.34);
         }
         
         .btn-success:hover {
-            background: #229954;
+            box-shadow: 0 0 22px rgba(45, 227, 143, 0.48);
         }
         
         .form-group {
@@ -103,63 +149,87 @@
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 7px;
             font-weight: 500;
-            color: #333;
+            color: var(--text);
         }
         
         .form-group input,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 11px 12px;
+            background: #0b1422;
+            color: var(--text);
+            border: 1px solid #27405f;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
         
         .form-group input:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--neon);
+            box-shadow: 0 0 0 3px rgba(36, 240, 168, 0.16);
+        }
+
+        .form-group input::placeholder {
+            color: #5d7f6e;
         }
         
         .alert {
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid transparent;
         }
         
         .alert-error {
-            background: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
+            background: rgba(255, 107, 122, 0.1);
+            color: #ffc3cd;
+            border-color: rgba(255, 107, 122, 0.5);
         }
         
         .alert-success {
-            background: #efe;
-            color: #3c3;
-            border: 1px solid #cfc;
+            background: rgba(45, 227, 143, 0.12);
+            color: #baffdd;
+            border-color: rgba(45, 227, 143, 0.5);
         }
         
         .badge {
             display: inline-block;
             padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 14px;
+            border-radius: 999px;
+            font-size: 12px;
             font-weight: 500;
         }
         
         .badge-success {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(45, 227, 143, 0.16);
+            color: #95ffd0;
+            border: 1px solid rgba(45, 227, 143, 0.45);
+        }
+
+        .page-title {
+            margin-bottom: 24px;
+            font-size: 24px;
+        }
+
+        .muted-link {
+            color: var(--ai);
+            text-decoration: none;
+        }
+
+        .muted-link:hover {
+            color: var(--neon);
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🥋 Mini-DOJO</h1>
+            <h1>🥋 Mini-DOJO // AI</h1>
             <nav>
                 {% if user %}
                     <span>Welcome, <strong>{{ user.username }}</strong></span>

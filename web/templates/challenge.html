@@ -12,16 +12,16 @@
     }
     
     .workspace-section {
-        background: #f8f9fa;
-        border: 2px solid #ddd;
-        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(18, 27, 43, 0.9), rgba(13, 19, 31, 0.9));
+        border: 1px solid var(--border);
+        border-radius: 12px;
         padding: 20px;
         margin-bottom: 30px;
     }
     
     .workspace-section h3 {
         margin-bottom: 15px;
-        color: #333;
+        color: var(--text);
     }
     
     .workspace-controls {
@@ -31,57 +31,76 @@
     }
     
     .workspace-url {
-        background: white;
+        background: #0a1423;
         padding: 15px;
-        border-radius: 5px;
-        border: 1px solid #ddd;
+        border-radius: 8px;
+        border: 1px solid #294562;
         margin-top: 15px;
     }
     
     .workspace-url a {
-        color: #667eea;
+        color: var(--ai);
         text-decoration: none;
         font-weight: 500;
         word-break: break-all;
     }
     
     .workspace-url a:hover {
+        color: var(--neon);
         text-decoration: underline;
     }
     
     .flag-section {
-        background: #f8f9fa;
-        border: 2px solid #ddd;
-        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(18, 27, 43, 0.9), rgba(13, 19, 31, 0.9));
+        border: 1px solid var(--border);
+        border-radius: 12px;
         padding: 20px;
     }
     
     .flag-section h3 {
         margin-bottom: 15px;
-        color: #333;
+        color: var(--text);
     }
     
     .back-link {
         display: inline-block;
         margin-top: 20px;
-        color: #667eea;
+        color: var(--ai);
         text-decoration: none;
     }
     
     .back-link:hover {
+        color: var(--neon);
         text-decoration: underline;
+    }
+
+    .challenge-description {
+        margin-bottom: 30px;
+        color: var(--text-soft);
+        font-size: 15px;
+    }
+
+    .hint {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #7ea8b1;
+    }
+
+    .status-text {
+        margin-bottom: 10px;
+        color: var(--text-soft);
     }
 </style>
 
 <div class="challenge-header">
-    <h2 style="color: #333;">{{ challenge.title }}</h2>
+    <h2>{{ challenge.title }}</h2>
     {% if solved %}
         <span class="badge badge-success">✅ Solved</span>
     {% endif %}
 </div>
 
 {% if challenge.description %}
-<p style="margin-bottom: 30px; color: #666; font-size: 16px;">{{ challenge.description }}</p>
+<p class="challenge-description">{{ challenge.description }}</p>
 {% endif %}
 
 <div class="workspace-section">
@@ -100,18 +119,18 @@
     </div>
     
     {% if workspace %}
-        <p style="color: #666; margin-bottom: 10px;">
+        <p class="status-text">
             Your workspace is running! Click the link below to open the browser terminal:
         </p>
         <div class="workspace-url">
             <strong>Terminal URL:</strong><br>
             <a href="{{ workspace_url }}" target="_blank">{{ workspace_url }}</a>
         </div>
-        <p style="color: #999; margin-top: 10px; font-size: 14px;">
-            💡 Tip: The terminal opens in a new tab. You can interact with the Linux environment directly in your browser.
+        <p class="hint">
+            🤖 Tip: The terminal opens in a new tab and is ready for binary analysis tools.
         </p>
     {% else %}
-        <p style="color: #666;">
+        <p class="status-text">
             Click "Start Workspace" to launch your isolated container environment.
         </p>
     {% endif %}

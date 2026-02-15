@@ -3,20 +3,22 @@
 {% block title %}Challenges - Mini-DOJO{% endblock %}
 
 {% block content %}
-<h2 style="margin-bottom: 30px; color: #333;">Available Challenges</h2>
+<h2 class="page-title">Available Challenges</h2>
 
 <style>
     .challenge-card {
-        border: 2px solid #ddd;
-        border-radius: 8px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(18, 27, 43, 0.9), rgba(13, 19, 31, 0.9));
         padding: 20px;
         margin-bottom: 20px;
-        transition: border-color 0.3s, box-shadow 0.3s;
+        transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
     }
     
     .challenge-card:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        border-color: #2a9dcf;
+        box-shadow: 0 8px 26px rgba(36, 240, 168, 0.18);
+        transform: translateY(-1px);
     }
     
     .challenge-header {
@@ -29,12 +31,16 @@
     .challenge-title {
         font-size: 20px;
         font-weight: 600;
-        color: #333;
+        color: var(--text);
     }
     
     .challenge-description {
-        color: #666;
+        color: var(--text-soft);
         margin-bottom: 15px;
+    }
+
+    .empty-state {
+        color: var(--text-soft);
     }
 </style>
 
@@ -56,6 +62,6 @@
     </div>
     {% endfor %}
 {% else %}
-    <p style="color: #666;">No challenges available yet.</p>
+    <p class="empty-state">No challenges available yet.</p>
 {% endif %}
 {% endblock %}

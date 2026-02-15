@@ -16,20 +16,31 @@ def init_db():
     # Seed challenges
     db = SessionLocal()
     try:
-        # Check if challenges already exist
-        existing = db.query(Challenge).filter_by(slug="dojo1-ret2win").first()
-        if not existing:
-            challenge = Challenge(
-                slug="dojo1-ret2win",
-                title="Dojo 1: ret2win (Beginner)",
-                description="Learn the basics of binary exploitation by calling the win() function.",
-                docker_image="mini-dojo/dojo1-ret2win:latest"
-            )
+        seed_challenges = [
+            {
+                "slug": "dojo1-ret2win",
+                "title": "Dojo 1: ret2win (Beginner)",
+                "description": "Learn the basics of binary exploitation by calling the win() function.",
+                "docker_image": "mini-dojo/dojo1-ret2win:latest",
+            },
+            {
+                "slug": "dojo2-ret2win-hidden",
+                "title": "Dojo 2: ret2win Hidden (Intermediate)",
+                "description": "Find and trigger a hidden win path in a tougher ret2win binary.",
+                "docker_image": "mini-dojo/dojo2-ret2win-hidden:latest",
+            },
+        ]
+
+        for challenge_data in seed_challenges:
+            existing = db.query(Challenge).filter_by(slug=challenge_data["slug"]).first()
+            if existing:
+                print(f"✓ Challenge already exists: {challenge_data['slug']}")
+                continue
+
+            challenge = Challenge(**challenge_data)
             db.add(challenge)
             db.commit()
-            print("✓ Seeded challenge: dojo1-ret2win")
-        else:
-            print("✓ Challenge already exists: dojo1-ret2win")
+            print(f"✓ Seeded challenge: {challenge_data['slug']}")
     finally:
         db.close()
 
